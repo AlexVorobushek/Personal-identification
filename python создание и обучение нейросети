@@ -1,0 +1,73 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+import os
+import matplotlib.pyplot as plt
+import numpy as np
+
+import tensorflow as tf
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+zip_dir = 'C:\\Users\\alex0\.keras\datasets\hands.zip'
+base_dir = os.path.join(os.path.dirname(zip_dir), 'hands')
+train_dir = os.path.join(base_dir, 'train')
+validation_dir = os.path.join(base_dir, 'validation')
+
+BATCH_SIZE = 5 # количество тренировочных изображений для обработки перед обновлением параметров модели
+IMG_SHAPE = 200 # 400
+
+train_image_generator = ImageDataGenerator(rescale=1./255)
+validation_image_generator = ImageDataGenerator(rescale=1./255)
+
+train_data_gen = train_image_generator.flow_from_directory(batch_size=BATCH_SIZE,
+                                                          directory=train_dir,
+                                                          shuffle=True,
+                                                          target_size=(IMG_SHAPE, IMG_SHAPE),
+                                                          class_mode='binary')
+
+val_data_gen = validation_image_generator.flow_from_directory(batch_size=BATCH_SIZE,
+                                                              directory=validation_dir,
+                                                              shuffle=False,
+                                                              target_size=(IMG_SHAPE, IMG_SHAPE),
+                                                              class_mode='binary')
+
+model = tf.keras.models.Sequential([
+    tf.keras.layers.Conv2D(64, (3,3), activation='relu', input_shape=(IMG_SHAPE, IMG_SHAPE, 3)),
+    tf.keras.layers.MaxPooling2D(2, 2),
+    
+    tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2, 2),
+    
+    tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2, 2),
+    
+    tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2, 2),
+    
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(512, activation='relu'),
+    tf.keras.layers.Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer='adam',
+              loss='binary_crossentropy',
+              metrics=['accuracy'])
+
+EPOCHS = 20
+history = model.fit_generator(
+    train_data_gen,
+    epochs=EPOCHS,      
+    validation_data=val_data_gen
+)
+
+model.save('my_model.h5')
+
+accuracy = history.history['accuracy']
+val_accuracy = history.history['val_accuracy']
+
+plt.subplot(1, 1, 1)
+plt.plot(epochs_range, accuracy, label='Точность на обучении')
+plt.plot(epochs_range, val_accuracy, label='Точность на валидации')
+plt.legend(loc='lower right')
+plt.title('Точность на обучающих и валидационных данных')
+plt.savefig('./foo3.png')
+plt.show()
